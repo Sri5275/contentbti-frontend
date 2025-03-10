@@ -1,0 +1,74 @@
+/* Header.css */
+.header {
+  background-color: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo a {
+  color: #2c3e50;
+  font-size: 20px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.logo a:hover {
+  color: #4d7cfe;
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+}
+
+.auth-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.login-link,
+.signup-link {
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.login-link {
+  color: #4a5568;
+  padding: 8px 15px;
+}
+
+.login-link:hover {
+  color: #4d7cfe;
+}
+
+.signup-link {
+  color: white;
+  background-color: #4d7cfe;
+  padding: 8px 15px;
+  border-radius: 4px;
+  transition: background-color 0.3s;
+}
+
+.signup-link:hover {
+  background-color: #3a67d4;
+}
+
+.logout-button {
+  padding: 8px 15px;
+  background-color: transparent;
+  color: #4a5568;
+  border: 1px solid #cbd5e0;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.logout-button:hover {
+  background-color: #f1f5f9;
+  color: #dc2626;
+  border-color: #dc2626;
+}
