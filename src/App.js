@@ -25,68 +25,83 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(
     localStorage.getItem("token") ? true : false
   );
-  const [file, setFile] = useState(null);
+  const [files, setFiles] = useState([]);
   const [processing, setProcessing] = useState(false);
   const [currentStep, setCurrentStep] = useState("");
   const [results, setResults] = useState(null);
   const [error, setError] = useState("");
 
+  // Handle File Changes
   const handleFileChange = (e) => {
-    if (e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setError("");
-    }
+    setFiles((prevFiles) => {
+      const newFiles = Array.from(e.target.files);
+      // console.log("Updated no of files:", newFiles.length);
+      // console.log("Updated files:", newFiles);
+      return newFiles;
+    });
+    setError("");
   };
 
+  // Handle Upload videos
   const handleUpload = async () => {
-    if (!file) {
-      setError("Please select a file first");
+    // If no file selected return error
+    if (files.length === 0) {
+      setError("Please select files first");
       return;
     }
 
+    // begin processing
     setProcessing(true);
     setResults(null);
-
     const formData = new FormData();
-    formData.append("video", file);
+    files.forEach((file) => formData.append("files", file));
 
+    // investigate form data
+    console.log("FormData : ")
+    for (let pair of formData.entries()) {
+      console.log(pair[0],":", pair[1]['name']); // Logs: files File {...}
+    }
+
+    // call API
     try {
-      // Simulate the steps with timeouts since we don't have the real backend connected
-      setCurrentStep("Cleaning audio");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      setCurrentStep("Uploading videos...");
 
-      setCurrentStep("Extracting text");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      const response = await axios.post("http://localhost:8000/upload-videos/", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+      });
 
-      setCurrentStep("Analyzing text");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      console.log("Upload response:", response.data);
+      // set currrent step to processing 
+      setCurrentStep("Processing videos...");
+      await new Promise((resolve) => setTimeout(resolve, 4000));
 
-      setCurrentStep("Extracting trending topics");
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+      let mockData = [];
 
-      // In a real implementation, this would be an actual API call
-      // const response = await axios.post('http://your-backend-url/api/upload', formData, {
-      //   headers: {
-      //     'Content-Type': 'multipart/form-data',
-      //     Authorization: `Bearer ${localStorage.getItem('token')}`
-      //   }
-      // });
+      if (response.data.success) {
+        const payload = response.data.payload;
+        const topicFrequencyMap = {};
 
-      // Mock response data
-      const mockData = [
-        ["Politics", 35],
-        ["Cricket", 28],
-        ["Bollywood", 22],
-        ["Technology", 18],
-        ["Education", 15],
-        ["Climate Change", 12],
-        ["Healthcare", 10],
-        ["Fashion", 8],
-      ];
+        // Count occurrences of each topic
+        for (const key in payload) {
+          const topic = payload[key];
+          topicFrequencyMap[topic] = (topicFrequencyMap[topic] || 0) + 1;
+        }
 
-      setResults(mockData);
+        // Convert to 2D array format
+        mockData = Object.entries(topicFrequencyMap);
+
+        console.log("Formatted Data:", mockData);
+        setResults(mockData);
+      } else {
+        console.error("Something went wrong:", response.data.message);
+        console.error("Error Message:", response.data.payload)  
+      }
+
     } catch (err) {
-      setError("Error processing your video. Please try again.");
+      setError("Error processing your videos. Please try again.");
       console.error(err);
     } finally {
       setProcessing(false);
@@ -123,23 +138,26 @@ function App() {
   const Dashboard = () => (
     <div className="dashboard">
       <div className="upload-section">
-        <h2>Upload Video for Trend Analysis</h2>
+        <h2>Upload Videos for Trend Analysis</h2>
         <div className="file-input-container">
           <input
             type="file"
             onChange={handleFileChange}
             accept="video/*"
+            multiple
             disabled={processing}
             id="file-upload"
             className="file-input"
           />
           <label htmlFor="file-upload" className="file-label">
-            {file ? file.name : "Choose Video File"}
+            {files.length > 0
+              ? `${files.length} file(s) selected`
+              : "Choose Video Files"}
           </label>
         </div>
         <button
           onClick={handleUpload}
-          disabled={!file || processing}
+          disabled={files.length === 0 || processing}
           className="upload-button"
         >
           {processing ? "Processing..." : "Upload and Analyze"}
