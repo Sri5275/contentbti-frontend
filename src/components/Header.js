@@ -9,7 +9,7 @@ function Header({ isLoggedIn, onLogout }) {
         <Link to="/">Content-Based Trend Identifier</Link>
       </div>
       <nav className="nav">
-        {isLoggedIn ? (
+        {/* {isLoggedIn ? (
           <button onClick={onLogout} className="logout-button">
             Logout
           </button>
@@ -22,7 +22,7 @@ function Header({ isLoggedIn, onLogout }) {
               Sign Up
             </Link>
           </div>
-        )}
+        )} */}
       </nav>
     </header>
   );
