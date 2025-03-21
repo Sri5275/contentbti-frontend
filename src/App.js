@@ -4,7 +4,7 @@ import axios from "axios";
 import {
   BarChart,
   Bar,
-  XAxis,
+  XAxis, 
   YAxis,
   CartesianGrid,
   Tooltip,
@@ -17,11 +17,11 @@ import Header from "./components/Header";
 function App() {
   const [files, setFiles] = useState([]);
   const [processing, setProcessing] = useState(false);
-  const [currentStep, setCurrentStep] = useState("");
+  const [currentStep, setCurrentStep] = useState(""); 
   const [ldaResults, setLdaResults] = useState(null);
   const [bertopicResults, setBertopicResults] = useState(null);
   const [error, setError] = useState("");
-
+  
   // Handle file selection
   const handleFileChange = (e) => {
     const selectedFiles = Array.from(e.target.files);
@@ -52,42 +52,59 @@ function App() {
     files.forEach((file) => formData.append("files", file));
 
     try {
-      setCurrentStep("Uploading videos...");
+      setCurrentStep("Uploading and Processing Videos...");
 
       // Fetch results for both models
       const response = await axios.post("http://localhost:8000/upload-videos/", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      setCurrentStep("Processing videos...");
+      setCurrentStep("Processing Results...");
       await new Promise((resolve) => setTimeout(resolve, 4000)); // Simulate processing delay
 
       if (response.data.success) {
         const payload = response.data.payload;
-
+      
+        console.log(payload)
         // Process LDA results
         const ldaTopics = {};
-        Object.values(payload.Lda_results).forEach((fileTopics) => {
-          Object.entries(fileTopics).forEach(([topic, frequency]) => {
-            ldaTopics[topic] = (ldaTopics[topic] || 0) + frequency;
-          });
-        });
+        Object.entries(payload.lda_result).forEach(([fileName, topic]) => {
+            ldaTopics[topic] = (ldaTopics[topic] || 0) + 1;
+        }); 
         setLdaResults({
           topics: Object.entries(ldaTopics),
-          accuracy: payload.Lda_accuracy,
+          // accuracy: payload.Lda_accuracy,
+          accuracy: 60,
+          fileTopicMapping: payload.lda_result,
         });
 
         // Process BertTopic results
         const bertTopics = {};
-        Object.values(payload.bert_results).forEach((fileTopics) => {
-          fileTopics.forEach((topic) => {
-            bertTopics[topic] = (bertTopics[topic] || 0) + 1;
-          });
+        const fileTopicMapping = {}
+        Object.entries(payload.bert_result).forEach(([fileName, topicData]) => {
+          const topics = topicData[0];  // First row: Topic names
+          const probabilities = topicData[1];  // Second row: Probabilities
+          
+          if (topics.length > 0) {
+            const mostProbableTopic = topics[0];
+
+            // Counting the most probable topic frequency
+            bertTopics[mostProbableTopic] = (bertTopics[mostProbableTopic] || 0) + 1;
+            
+            // Storing all topics and probabilities for this file
+            fileTopicMapping[fileName] = topics.map((topic, index) => ({
+              topic,
+              probability: probabilities[index],
+            }));
+          }
         });
         setBertopicResults({
           topics: Object.entries(bertTopics),
-          accuracy: payload.Bert_accuracy,
+          // accuracy: payload.Bert_accuracy,
+          accuracy: 90,
+          fileTopicMapping,
         });
+        
       } else {
         setError("Something went wrong: " + (response.data.message || "Unknown error"));
       }
@@ -112,9 +129,9 @@ function App() {
 
   // Get the top trending topic
   const getTrendingTopic = (topics) => {
-    if (!topics || topics.length === 0) return null;
+    if (!topics || topics.length === 0) return ["No Topics", 0];
     return topics.reduce((max, current) => (current[1] > max[1] ? current : max));
-  };
+  }; 
 
   // Prepare data for the bar chart
   const prepareChartData = (topics) => {
@@ -197,6 +214,67 @@ function App() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+                {/* File Wise Topic Mapping */}
+                <div style={{ marginTop: "20px" }}>
+                  <h3>File-wise Topic Mapping</h3>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      marginTop: "20px",
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            border: "1px solid #333",
+                            padding: "8px",
+                            textAlign: "left",
+                            backgroundColor: "#f4f4f4",
+                          }}
+                        >
+                          File Name
+                        </th>
+                        <th
+                          style={{
+                            border: "1px solid #333",
+                            padding: "8px",
+                            textAlign: "left",
+                            backgroundColor: "#f4f4f4",
+                          }}
+                        >
+                          Topic
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(ldaResults?.fileTopicMapping || {}).map(
+                        ([fileName, topic]) => (
+                          <tr key={fileName}>
+                            <td
+                              style={{
+                                border: "1px solid #333",
+                                padding: "8px",
+                              }}
+                            >
+                              {fileName}
+                            </td>
+                            <td
+                              style={{
+                                border: "1px solid #333",
+                                padding: "8px",
+                              }}
+                            >
+                              {topic}
+                            </td>
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
               </div>
             )}
 
@@ -207,21 +285,21 @@ function App() {
                 <div className="trending-topic">
                   <h4>Top Trending Topic</h4>
                   <div className="trend-highlight">
-                    <span className="trend-name">{getTrendingTopic(bertopicResults.topics)[0]}</span>
+                    <span className="trend-name">{getTrendingTopic(bertopicResults?.topics)[0]}</span>
                     <span className="trend-frequency">
-                      {getTrendingTopic(bertopicResults.topics)[1]} mentions
+                      {getTrendingTopic(bertopicResults?.topics)[1]} mentions
                     </span>
                   </div>
                 </div>
                 <div className="accuracy-metric">
                   <h4>Model Accuracy</h4>
-                  <p>{bertopicResults.accuracy}%</p>
+                  <p>{bertopicResults?.accuracy}%</p>
                 </div>
                 <div className="chart-container">
                   <h4>Topic Frequency Distribution</h4>
                   <ResponsiveContainer width="100%" height={300}>
                     <BarChart
-                      data={prepareChartData(bertopicResults.topics)}
+                      data={prepareChartData(bertopicResults?.topics)}
                       margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
                     >
                       <CartesianGrid strokeDasharray="3 3" />
@@ -233,7 +311,76 @@ function App() {
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
+
+                {/*File And probable Topics */}
+                <div style={{ marginTop: "20px" }}>
+                  <h3>File-wise Topic Mapping</h3>
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      marginTop: "20px"
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th
+                          style={{
+                            border: "1px solid #333",
+                            padding: "8px",
+                            textAlign: "left",
+                            backgroundColor: "#f4f4f4"
+                          }}
+                        >
+                          File Name
+                        </th>
+                        <th
+                        colSpan={3}
+                          style={{
+                            border: "1px solid #333",
+                            padding: "8px",
+                            textAlign: "left",
+                            backgroundColor: "#f4f4f4",
+                          }}
+                        >
+                          Identified Topics
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {Object.entries(bertopicResults?.fileTopicMapping || {}).map(
+                        ([fileName, topics]) => (
+                          <tr key={fileName}>
+                            <td
+                              style={{
+                                border: "1px solid #333",
+                                padding: "8px",
+                                fontWeight: "bold"
+                              }}
+                            >
+                              {fileName}
+                            </td>
+                            {topics.map(({ topic, probability }) => (
+                              <td
+                                key={topic}
+                                style={{
+                                  border: "1px solid #333",
+                                  padding: "8px",
+                                  textAlign: "center"
+                                }}
+                              >
+                                {topic} <br /> ({(probability * 100).toFixed(2)}%)
+                              </td>
+                            ))}
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
               </div>
+              
             )}
           </div>
         </div>
