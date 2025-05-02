@@ -194,10 +194,10 @@ function App() {
                     </span>
                   </div>
                 </div>
-                {/* <div className="accuracy-metric">
+                <div className="accuracy-metric">
                   <h4>Model Accuracy</h4>
                   <p>{ldaResults.accuracy}%</p>
-                </div> */}
+                </div>
                 <div className="chart-container">
                   <h4>Topic Frequency Distribution</h4>
                   <ResponsiveContainer width="100%" height={300}>
@@ -291,10 +291,10 @@ function App() {
                     </span>
                   </div>
                 </div>
-                {/* <div className="accuracy-metric">
+                <div className="accuracy-metric">
                   <h4>Model Accuracy</h4>
                   <p>{bertopicResults?.accuracy}%</p>
-                </div> */}
+                </div>
                 <div className="chart-container">
                   <h4>Topic Frequency Distribution</h4>
                   <ResponsiveContainer width="100%" height={300}>
